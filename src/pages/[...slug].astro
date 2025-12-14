@@ -132,11 +132,21 @@ export async function getStaticPaths() {
         let slug: string | undefined = relativePath.replace(/\.md$/, '').replace(/\/index$/, '');
 
         const tableOfContents: TOCItem[] = [];
+        const slugCount: Record<string, number> = {};
         const renderer = new marked.Renderer();
 
         // Custom heading renderer for TOC
         renderer.heading = function ({ text, depth }) {
-          const slug = slugify(text);
+          let slug = slugify(text);
+          if (slugCount[slug]) {
+            slugCount[slug]++;
+            slug += `-${slugCount[slug]}`;
+          } else {
+            slugCount[slug] = 1;
+          }
+          // Only include headings up to depth 2
+          if(depth > 2) {return ''; } 
+          
           tableOfContents.push({ text, depth, slug });
           return `<h${depth} id="${slug}">${text}</h${depth}>`;
         };
@@ -178,9 +188,16 @@ export async function getStaticPaths() {
 
   if (!hasIndex) {
     const tableOfContents: TOCItem[] = [];
+    const slugCount: Record<string, number> = {};
     const renderer = new marked.Renderer();
     renderer.heading = function ({ text, depth }) {
-      const slug = slugify(text);
+      let slug = slugify(text);
+      if (slugCount[slug]) {
+        slugCount[slug]++;
+        slug += `-${slugCount[slug]}`;
+      } else {
+        slugCount[slug] = 1;
+      }
       tableOfContents.push({ text, depth, slug });
       return `<h${depth} id="${slug}">${text}</h${depth}>`;
     };
@@ -254,6 +271,33 @@ const isIndex = Astro.params.slug === undefined;
     </div>
     }
   </div>
+
+  <script>
+    // TOC scroll highlight
+    document.addEventListener('DOMContentLoaded', () => {
+      const tocLinks = document.querySelectorAll('.toc-link');
+      const headings = document.querySelectorAll('h1[id], h2[id], h3[id], h4[id], h5[id], h6[id]');
+
+      const observer = new IntersectionObserver(
+        (entries) => {
+          entries.forEach((entry) => {
+            if (entry.isIntersecting) {
+              // Remove active from all
+              tocLinks.forEach((link) => link.classList.remove('text-slate-400'));
+              // Add to current
+              const activeLink = document.querySelector(`.toc-link[href="#${entry.target.id}"]`);
+              if (activeLink) {
+                activeLink.classList.add('text-slate-400');
+              }
+            }
+          });
+        },
+        { rootMargin: '-80px 0px -80% 0px' } // Adjust for header
+      );
+
+      headings.forEach((heading) => observer.observe(heading));
+    });
+  </script>
 
   <style is:global>
     /* Markdown Content Styling */

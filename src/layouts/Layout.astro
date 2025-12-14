@@ -54,7 +54,9 @@ const { title, sidebarLinks, tableOfContents, lastUpdated, author, commitHash } 
                 .map((link) => (
                   <a
                     href={link.href}
-                    class="block py-2 px-3 rounded hover:bg-slate-600 transition-colors text-sm"
+                    class={`block py-2 px-3 rounded transition-colors text-sm ${
+                      link.href === Astro.url.pathname ? 'bg-slate-600' : 'hover:bg-slate-600'
+                    }`}
                   >
                     {link.title}
                   </a>
@@ -77,7 +79,7 @@ const { title, sidebarLinks, tableOfContents, lastUpdated, author, commitHash } 
               tableOfContents.map((item) => (
                 <a
                   href={`#${item.slug}`}
-                  class="block py-1 px-3 rounded hover:bg-slate-600 transition-colors text-sm"
+                  class="block py-1 px-3 rounded hover:text-slate-400 transition-colors text-sm toc-link"
                   style={`margin-left: ${(item.depth - 1) * 10}px`}
                 >
                   {item.text}
