@@ -1,0 +1,39 @@
+{
+  "name": "heydoc",
+  "type": "module",
+  "version": "0.2.1",
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview",
+    "astro": "astro",
+    "lint": "eslint . --ext .js,.mjs,.ts,.tsx,.astro",
+    "format": "prettier --write ."
+  },
+  "bin": {
+    "heydoc": "./bin/cli.mjs"
+  },
+  "files": [
+    "bin",
+    "src",
+    "astro.config.mjs"
+  ],
+  "dependencies": {
+    "astro": "^5.16.5",
+    "astro-pagefind": "^1.8.5",
+    "globby": "^16.0.0",
+    "gray-matter": "^4.0.3",
+    "marked": "^17.0.1"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.2",
+    "eslint": "^9.39.2",
+    "globals": "^16.5.0",
+    "jiti": "^2.6.1",
+    "prettier": "3.7.4",
+    "typescript-eslint": "^8.49.0"
+  },
+  "engines": {
+    "node": ">=18.14.1"
+  }
+}

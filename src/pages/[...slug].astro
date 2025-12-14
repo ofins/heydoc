@@ -1,0 +1,136 @@
+---
+console.log("HELLO? I am the [...slug].astro file!");
+
+import Layout from '../layouts/Layout.astro';
+import { globby } from 'globby';
+import fs from 'node:fs';
+import path from 'node:path';
+import matter from 'gray-matter';
+import { marked } from 'marked';
+
+interface TOCItem {
+  depth: number;
+  text: string;
+  slug: string;
+}
+
+export async function getStaticPaths(){
+  console.log("Running getStaticPaths...")
+  const userRoot = process.env.HEY_DOC_USER_ROOT || '';
+
+  const paths = await globby(['**/*.md', '!node_modules', '!dist-docs'],{
+    cwd: userRoot,
+    absolute: true
+  })
+
+  const allDocs = paths.map((filePath)=>{
+    const fileContent = fs.readFileSync(filePath, 'utf-8');
+    const { data } = matter(fileContent);
+
+    let relativePath = path.relative(userRoot, filePath)
+    let slug: string | undefined = relativePath.split(path.sep).join('/').replace(/\.md$/, '').replace(/\/index$/, '');
+
+    if(slug === 'index') slug = undefined;
+
+    return {
+      title: data.title || slug || 'Untitled',
+      href: `/docs${slug ? `/${slug}` : '' }`
+    };
+  })
+
+  console.log(`✅ Found ${paths.length} markdown files`);
+  if (paths.length > 0) console.log('   Example:', paths[0]);
+
+  return Promise.all(paths.map(async (filePath)=>{
+    try {
+      const fileContent = fs.readFileSync(filePath, 'utf-8');
+    const { data, content } = matter(fileContent);
+
+    let relativePath = path.relative(userRoot, filePath)
+    let slug: string | undefined = relativePath.replace(/\.md$/, '').replace(/\/index$/, '');
+
+    if(slug === 'index') slug = undefined;
+    console.log(`Mapping: ${relativePath} -> Slug: ${slug}`)
+
+    console.log(`🎯 Route: "${slug === undefined ? '/' : slug}" (from ${relativePath})`);
+
+    const tableOfContents: TOCItem[] = []
+    const slugify = (text: string) => {
+      return text
+        .toString()
+        .toLowerCase()
+        .replace(/\s+/g, '-')
+        .replace(/[^\w\-]+/g, '')
+        .replace(/\-\-+/g, '-')
+        .replace(/^-+/, '')
+        .replace(/-+$/, '');
+    };
+
+    const renderer = new marked.Renderer();
+
+    renderer.heading = function({text, depth}){
+      const slug = slugify(text);
+      tableOfContents.push({ text, depth, slug });
+      return `<h${depth} id="${slug}">${text}</h${depth}>`;
+    }
+
+    const htmlContent = await marked.parse(content, { renderer });
+
+    return {
+      params: { slug },
+      props:{
+        frontmatter:data,
+        htmlContent, // convert MD to HTML
+        allDocs,
+        tableOfContents,
+      }
+    }
+    } catch (error) {
+      console.error(`❌ Failed to read file: ${filePath}`);
+    return null; // Handle this null later or filter it out
+    }
+  }))
+}
+
+const { frontmatter, htmlContent, allDocs, tableOfContents} = Astro.props;
+const isIndex = Astro.params.slug === undefined;
+
+---
+<Layout title={frontmatter.title  || 'Documentation'} sidebarLinks={allDocs} tableOfContents={tableOfContents}>
+  <div class="prose">
+    <h1>{frontmatter.title}</h1>
+    <div set:html={htmlContent} />
+    {
+      isIndex && (
+        <div class="doc-list">
+        <h2>Available Documentation</h2>
+        <ul>
+          {allDocs.map(doc => (
+            <li>
+              <a href={doc.href}>{doc.title}</a>
+            </li>
+          ))}
+        </ul>
+      </div>
+      )
+    }
+  </div>
+
+  <style>
+    .doc-list {
+    margin-top: 3rem;
+    padding: 1rem;
+    background: #f4f4f4;
+    border-radius: 8px;
+  }
+
+    .prose {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 2rem;
+      overflow-y:scroll;
+    }
+
+
+  </style>
+</Layout>
