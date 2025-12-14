@@ -1,4 +1,5 @@
 ---
+import { version } from '../../package.json' assert { type: 'json' };
 import '../styles/global.css';
 
 interface TOCItem {
@@ -42,6 +43,7 @@ const { title, sidebarLinks, tableOfContents, lastUpdated, author, commitHash } 
           >HeyDoc! 👨🏻‍⚕️</a
         >
         <!-- <Search id="Search" /> -->
+        <span class="text-xs ml-auto text-slate-300">Ver {version}</span>
       </header>
       <aside
         class="fixed top-12.5 left-0 w-50 bg-slate-700 text-white p-4 overflow-y-auto h-[calc(100vh-3.125rem)]"
