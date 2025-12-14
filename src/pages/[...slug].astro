@@ -5,12 +5,14 @@ import { marked } from 'marked';
 import fs from 'node:fs';
 import path from 'node:path';
 import Layout from '../layouts/Layout.astro';
-
+import { spawnSync } from 'node:child_process';
 interface TOCItem {
   depth: number;
   text: string;
   slug: string;
 }
+
+
 
 export async function getStaticPaths() {
   const userRoot = process.env.HEY_DOC_USER_ROOT || '';
@@ -53,6 +55,57 @@ export async function getStaticPaths() {
   });
 
   console.log(`Discovered ${paths.length} documentation files.`);
+
+  function getGitMetadata(filePath: string, userRoot: string){
+  try {
+    const relativePath = path.relative(userRoot, filePath);
+    console.log(`Getting git info for ${relativePath} in ${userRoot}`);
+    // Run: git log -5 --pretty="format:%ci|%cn|%h|%s" path/to/file
+    // %ci = Committer date (ISO 8601)
+    // %cn = Committer name
+    // %h  = Short hash
+    // %s = Subject (commit message)
+    const result = spawnSync('git', ['log', '-5', '--pretty=format:%ci|%cn|%h|%s', relativePath], { cwd: userRoot, encoding: 'utf-8' });
+    if (result.error || !result.stdout) {
+      return []; // Not a git repo or file not committed yet
+    }
+
+    const lines = result.stdout.trim().split('\n');
+    const commits = lines.map(line => {
+      const [dateString, author, hash, message] = line.split('|');
+      return {
+        lastModifiedDate: new Date(dateString),
+        author,
+        hash,
+        message,
+        isFirst:false,
+      };
+    });
+
+    if (commits.length > 1) {
+      const firstResult = spawnSync('git', ['log', '--reverse', '-1', '--pretty=format:%ci|%cn|%h|%s', relativePath], { cwd: userRoot, encoding: 'utf-8' });
+      if (firstResult.stdout) {
+        const [dateString, author, hash, message] = firstResult.stdout.trim().split('|');
+        const firstCommit = {
+          lastModifiedDate: new Date(dateString),
+          author,
+          hash,
+          message,
+          isFirst: true,
+        };
+        // Avoid duplicate if first commit is already in the last 5
+        if (!commits.some(c => c.hash === firstCommit.hash)) {
+          commits.push(firstCommit);
+        }
+      }
+    }
+
+    return commits;
+  } catch (error) {
+    console.error(`Error in getGitMetadata: ${error}`);
+    return [];
+  }
+}
 
   const slugify = (text: string) => {
     return text
@@ -97,6 +150,10 @@ export async function getStaticPaths() {
         console.log(`Mapping: ${relativePath} -> Slug: ${slug}`);
         const htmlContent = await marked.parse(content, markedOptions);
 
+        const gitInfo = getGitMetadata(filePath, userRoot);
+
+        console.log(`Git info for ${relativePath}:`, gitInfo);
+
         return {
           params: { slug },
           props: {
@@ -104,10 +161,11 @@ export async function getStaticPaths() {
             htmlContent,
             allDocs,
             tableOfContents,
+            commits: gitInfo
           },
         };
       } catch (error) {
-        console.error(`❌ Failed to read file: ${filePath}`);
+        console.error(`❌ Failed to read file: ${filePath}: ${error}`);
         return null;
       }
     }),
@@ -138,19 +196,39 @@ export async function getStaticPaths() {
         htmlContent,
         allDocs,
         tableOfContents,
+        
+        commits: []
       },
     });
   }
   return validResults;
 }
 
-const { frontmatter, htmlContent, allDocs, tableOfContents } = Astro.props;
+const { frontmatter, htmlContent, allDocs, tableOfContents, commits } = Astro.props;
 const isIndex = Astro.params.slug === undefined;
 ---
 
-<Layout sidebarLinks={allDocs} tableOfContents={tableOfContents}>
+<Layout sidebarLinks={allDocs} tableOfContents={tableOfContents} title={frontmatter.title || 'Documentation'}>
   <div class="p-4 overflow-y-scroll flex justify-center items-start flex-col w-full">
     <!-- Markdown content with proper styling -->
+     <details class="mb-4">
+       <summary class="text-sm text-gray-600 cursor-pointer list-none">
+         {commits && commits.length > 0 ? (
+           <>Last Updated: {new Date(commits[0].lastModifiedDate).toLocaleDateString('en-US', { dateStyle: 'medium' })} by {commits[0].author} ({commits[0].hash.slice(0,7)}) - {commits[0].message}</>
+         ) : (
+           'No commit history available'
+         )}
+       </summary>
+       {commits && commits.length > 1 && (
+         <div class="mt-2 text-sm text-gray-500 pl-4 border-l-2 border-gray-300">
+           {commits.slice(1).map((c, index) => (
+             <p class="mb-1">
+               <strong>{c.hash.slice(0,7)}</strong>: {new Date(c.lastModifiedDate).toLocaleDateString('en-US', { dateStyle: 'short' })} by {c.author} - {c.message}{c.isFirst ? ' (First Commit)' : ''}
+             </p>
+           ))}
+         </div>
+       )}
+     </details>
     <article class="markdown-content" set:html={htmlContent} />
 
    {isIndex ? <h1 class="text-xl">Available Documentation</h1>
@@ -362,6 +440,22 @@ const isIndex = Astro.params.slug === undefined;
 
     .markdown-content em {
       font-style: italic;
+    }
+
+    /* Details expand animation */
+    details[open] > div {
+      animation: slideDown 0.3s ease;
+    }
+
+    @keyframes slideDown {
+      from {
+        opacity: 0;
+        transform: translateY(-10px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
     }
   </style>
 </Layout>

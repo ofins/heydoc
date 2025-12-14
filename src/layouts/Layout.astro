@@ -16,9 +16,12 @@ interface Props {
   title?: string;
   sidebarLinks: SidebarLink[];
   tableOfContents?: TOCItem[]; // Use ? if it's optional
+  lastUpdated?: string | null;
+  author?: string;
+  commitHash?: string | null;
 }
 
-const { title, sidebarLinks, tableOfContents } = Astro.props;
+const { title, sidebarLinks, tableOfContents, lastUpdated, author, commitHash } = Astro.props;
 ---
 
 <!doctype html>
