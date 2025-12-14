@@ -43,7 +43,7 @@ const { title, sidebarLinks, tableOfContents } = Astro.props;
           {sidebarLinks && sidebarLinks.map((link) => <a href={link.href}>{link.title}</a>)}
         </nav>
       </aside>
-      <div class="mx-50 p-1rem box-border w-full">
+      <div class="mx-70 p-1rem box-border w-full">
         <slot />
       </div>
       <aside class="fixed top-12.5 right-0">
@@ -71,7 +71,7 @@ const { title, sidebarLinks, tableOfContents } = Astro.props;
     height: calc(100% - 3.125rem);
   }
   aside {
-    width: 12.5rem;
+    width: 17rem;
     background: #f4f4f4;
     padding: 1rem;
     box-sizing: border-box;
