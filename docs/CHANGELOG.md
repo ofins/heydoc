@@ -1,4 +1,4 @@
-## 0.2.3
+## 0.3.0
 
 - allow styles from MD to HTML
 - create theme for UI
