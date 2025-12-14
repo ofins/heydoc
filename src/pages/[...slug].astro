@@ -1,6 +1,4 @@
 ---
-console.log("HELLO? I am the [...slug].astro file!");
-
 import Layout from '../layouts/Layout.astro';
 import { globby } from 'globby';
 import fs from 'node:fs';
@@ -15,7 +13,6 @@ interface TOCItem {
 }
 
 export async function getStaticPaths(){
-  console.log("Running getStaticPaths...")
   const userRoot = process.env.HEY_DOC_USER_ROOT || '';
 
   const paths = await globby(['**/*.md', '!node_modules', '!dist-docs'],{
@@ -38,8 +35,7 @@ export async function getStaticPaths(){
     };
   })
 
-  console.log(`✅ Found ${paths.length} markdown files`);
-  if (paths.length > 0) console.log('   Example:', paths[0]);
+  console.log(`Discovered ${paths.length} documentation files.`);
 
   return Promise.all(paths.map(async (filePath)=>{
     try {
@@ -51,8 +47,6 @@ export async function getStaticPaths(){
 
     if(slug === 'index') slug = undefined;
     console.log(`Mapping: ${relativePath} -> Slug: ${slug}`)
-
-    console.log(`🎯 Route: "${slug === undefined ? '/' : slug}" (from ${relativePath})`);
 
     const tableOfContents: TOCItem[] = []
     const slugify = (text: string) => {

@@ -21,9 +21,6 @@ if (!allowedCommands.includes(command)) {
   process.exit(1);
 }
 
-console.log(`Running ${command}...`);
-console.log(`Scanning: ${userRoot}`);
-
 let astroBin;
 
 try {
