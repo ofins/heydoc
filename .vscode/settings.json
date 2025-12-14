@@ -1,3 +1,11 @@
 {
-  "cSpell.words": ["heydoc"]
+  "cSpell.words": ["frontmatter", "heydoc"],
+  "editor.formatOnSave": true,
+  "[typescript]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "editor.codeActionsOnSave": {
+    "source.organizeImports": "explicit",
+    "source.fixAll.eslint": "explicit"
+  }
 }

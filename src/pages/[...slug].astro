@@ -1,10 +1,10 @@
 ---
-import Layout from '../layouts/Layout.astro';
 import { globby } from 'globby';
-import fs from 'node:fs';
-import path from 'node:path';
 import matter from 'gray-matter';
 import { marked } from 'marked';
+import fs from 'node:fs';
+import path from 'node:path';
+import Layout from '../layouts/Layout.astro';
 
 interface TOCItem {
   depth: number;
@@ -12,119 +12,134 @@ interface TOCItem {
   slug: string;
 }
 
-export async function getStaticPaths(){
+export async function getStaticPaths() {
   const userRoot = process.env.HEY_DOC_USER_ROOT || '';
+  const heydocIndexPath = path.resolve(process.cwd() || 'index.md');
 
-  const paths = await globby(['**/*.md', '!node_modules', '!dist-docs'],{
+  let defaultIndexContent = '';
+  let defaultIndexData = {};
+
+  try {
+    const fileContent = fs.readFileSync(heydocIndexPath, 'utf-8');
+    const parsed = matter(fileContent);
+    defaultIndexContent = parsed.content;
+    defaultIndexData = parsed.data;
+  } catch (error) {
+    console.warn(`Warning: could not read HeyDoc\'s default index.md. Using empty content.'`);
+  }
+
+  const paths = await globby(['**/*.md', '!node_modules', '!dist-docs'], {
     cwd: userRoot,
-    absolute: true
-  })
+    absolute: true,
+  });
 
-  const allDocs = paths.map((filePath)=>{
+  const allDocs = paths.map((filePath) => {
     const fileContent = fs.readFileSync(filePath, 'utf-8');
     const { data } = matter(fileContent);
 
-    let relativePath = path.relative(userRoot, filePath)
-    let slug: string | undefined = relativePath.split(path.sep).join('/').replace(/\.md$/, '').replace(/\/index$/, '');
+    let relativePath = path.relative(userRoot, filePath);
+    let slug: string | undefined = relativePath
+      .split(path.sep)
+      .join('/')
+      .replace(/\.md$/, '')
+      .replace(/\/index$/, '');
 
-    if(slug === 'index') slug = undefined;
+    if (slug === 'index') slug = undefined;
 
     return {
       title: data.title || slug || 'Untitled',
-      href: `/docs${slug ? `/${slug}` : '' }`
+      href: `/docs${slug ? `/${slug}` : ''}`,
     };
-  })
+  });
 
   console.log(`Discovered ${paths.length} documentation files.`);
+  const slugify = (text: string) => {
+    return text
+      .toString()
+      .toLowerCase()
+      .replace(/\s+/g, '-')
+      .replace(/[^\w\-]+/g, '')
+      .replace(/\-\-+/g, '-')
+      .replace(/^-+/, '')
+      .replace(/-+$/, '');
+  };
+  const tableOfContents: TOCItem[] = [];
 
-  return Promise.all(paths.map(async (filePath)=>{
-    try {
-      const fileContent = fs.readFileSync(filePath, 'utf-8');
-    const { data, content } = matter(fileContent);
+  const renderer = new marked.Renderer();
+  renderer.heading = function ({ text, depth }) {
+    const slug = slugify(text);
+    tableOfContents.push({ text, depth, slug });
+    return `<h${depth} id="${slug}">${text}</h${depth}>`;
+  };
 
-    let relativePath = path.relative(userRoot, filePath)
-    let slug: string | undefined = relativePath.replace(/\.md$/, '').replace(/\/index$/, '');
+  const results = await Promise.all(
+    paths.map(async (filePath) => {
+      try {
+        const fileContent = fs.readFileSync(filePath, 'utf-8');
+        const { data, content } = matter(fileContent);
 
-    if(slug === 'index') slug = undefined;
-    console.log(`Mapping: ${relativePath} -> Slug: ${slug}`)
+        let relativePath = path.relative(userRoot, filePath);
+        let slug: string | undefined = relativePath.replace(/\.md$/, '').replace(/\/index$/, '');
 
-    const tableOfContents: TOCItem[] = []
-    const slugify = (text: string) => {
-      return text
-        .toString()
-        .toLowerCase()
-        .replace(/\s+/g, '-')
-        .replace(/[^\w\-]+/g, '')
-        .replace(/\-\-+/g, '-')
-        .replace(/^-+/, '')
-        .replace(/-+$/, '');
-    };
+        if (slug === 'index') slug = undefined;
+        console.log(`Mapping: ${relativePath} -> Slug: ${slug}`);
+        const htmlContent = await marked.parse(content, { renderer });
 
-    const renderer = new marked.Renderer();
-
-    renderer.heading = function({text, depth}){
-      const slug = slugify(text);
-      tableOfContents.push({ text, depth, slug });
-      return `<h${depth} id="${slug}">${text}</h${depth}>`;
-    }
-
-    const htmlContent = await marked.parse(content, { renderer });
-
-    return {
-      params: { slug },
-      props:{
-        frontmatter:data,
-        htmlContent, // convert MD to HTML
-        allDocs,
-        tableOfContents,
+        return {
+          params: { slug },
+          props: {
+            frontmatter: data,
+            htmlContent, // convert MD to HTML
+            allDocs,
+            tableOfContents,
+          },
+        };
+      } catch (error) {
+        console.error(`❌ Failed to read file: ${filePath}`);
+        return null; // Handle this null later or filter it out
       }
-    }
-    } catch (error) {
-      console.error(`❌ Failed to read file: ${filePath}`);
-    return null; // Handle this null later or filter it out
-    }
-  }))
+    }),
+  );
+
+  const validResults = results.filter((res) => res !== null);
+  const hasIndex = validResults.some((res) => res.params.slug === undefined);
+
+  if (!hasIndex) {
+    const htmlContent = await marked.parse(defaultIndexContent, { renderer });
+    validResults.push({
+      params: { slug: undefined },
+      props: {
+        frontmatter: defaultIndexData,
+        htmlContent,
+        allDocs, // Reuse the allDocs from earlier
+        tableOfContents,
+      },
+    });
+  }
+  return validResults;
 }
 
-const { frontmatter, htmlContent, allDocs, tableOfContents} = Astro.props;
-const isIndex = Astro.params.slug === undefined;
-
+const { frontmatter, htmlContent, allDocs, tableOfContents } = Astro.props;
+// const isIndex = Astro.params.slug === undefined;
 ---
-<Layout title={frontmatter.title  || 'Documentation'} sidebarLinks={allDocs} tableOfContents={tableOfContents}>
-  <div class="prose">
-    <h1>{frontmatter.title}</h1>
+
+<Layout sidebarLinks={allDocs} tableOfContents={tableOfContents}>
+  <div class="p-4 overflow-y-scroll flex justify-center items-start flex-col w-full">
+    <!-- <h1>{frontmatter.title}</h1> -->
     <div set:html={htmlContent} />
-    {
-      isIndex && (
-        <div class="doc-list">
-        <h2>Available Documentation</h2>
-        <ul>
-          {allDocs.map(doc => (
+    <h1 class="text-xl">Available Documentation</h1>
+    <div class="p-4 bg-[#f9f9f9]">
+      <ul>
+        {
+          allDocs.map((doc) => (
             <li>
               <a href={doc.href}>{doc.title}</a>
             </li>
-          ))}
-        </ul>
-      </div>
-      )
-    }
+          ))
+        }
+      </ul>
+    </div>
   </div>
 
-  <style>
-    .doc-list {
-    margin-top: 3rem;
-    padding: 1rem;
-    background: #f4f4f4;
-    border-radius: 8px;
-  }
-
-    .prose {
-      max-width: 800px;
-      margin: 0 auto;
-      padding: 2rem;
-      overflow-y:scroll;
-    }
-
-
-  </style>
+  <style></style>
 </Layout>

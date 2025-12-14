@@ -1,88 +1,88 @@
 ---
-import Search from 'astro-pagefind/components/Search';
+import '../styles/global.css';
+
+interface TOCItem {
+  depth: number;
+  text: string;
+  slug: string;
+}
+
+interface SidebarLink {
+  title: string;
+  href: string;
+}
+
+interface Props {
+  title?: string;
+  sidebarLinks: SidebarLink[];
+  tableOfContents?: TOCItem[]; // Use ? if it's optional
+}
 
 const { title, sidebarLinks, tableOfContents } = Astro.props;
 ---
 
 <!doctype html>
 <html lang="en">
-	<head>
-		<meta charset="UTF-8" />
-		<meta name="viewport" content="width=device-width" />
-		<link rel="icon" type="image/svg+xml" href={`${import.meta.env.BASE_URL} + favicon.svg`} />
-		<meta name="generator" content={Astro.generator} />
-		<title>{title}</title>
-	</head>
-	<body>
-	<main>
-		<header>
-			I am header
-			<!-- <Search id="Search" /> -->
-		</header>
-		<aside>
-			<nav>
-				{
-					sidebarLinks && sidebarLinks.map((link) => (
-						<a href={link.href}>{link.title}</a>
-					))
-				}
-			</nav>
-		</aside>
-      <slot /> 
-		<aside>
-			<!-- Right sidebar content can go here -->
-			 <nav>
-			{
-				tableOfContents && tableOfContents.map((item) => (
-					<a href={`#${item.slug}`} style={`margin-left: ${(item.depth - 1) * 10}px`}>
-			{item.text}
-		  </a>
-				))
-			}
-			 </nav>
-		</aside>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width" />
+    <link rel="icon" type="image/svg+xml" href={`${import.meta.env.BASE_URL} + favicon.svg`} />
+    <meta name="generator" content={Astro.generator} />
+    <title>{title}</title>
+  </head>
+  <body>
+    <main class="flex mt-12.5">
+      <header
+        class="fixed top-0 left-0 w-full h-12.5 bg-[#333] flex items-center px-4 z-999 text-white"
+      >
+        <a href="/docs">HeyDoc! 👨🏻‍⚕️</a>
+        <!-- <Search id="Search" /> -->
+      </header>
+      <aside class="fixed top-12.5 left-0">
+        <nav>
+          {sidebarLinks && sidebarLinks.map((link) => <a href={link.href}>{link.title}</a>)}
+        </nav>
+      </aside>
+      <div class="mx-50 p-1rem box-border w-full">
+        <slot />
+      </div>
+      <aside class="fixed top-12.5 right-0">
+        <!-- Right sidebar content can go here -->
+        <nav>
+          {
+            tableOfContents &&
+              tableOfContents.map((item) => (
+                <a href={`#${item.slug}`} style={`margin-left: ${(item.depth - 1) * 10}px`}>
+                  {item.text}
+                </a>
+              ))
+          }
+        </nav>
+      </aside>
     </main>
-	</body>
+  </body>
 </html>
 
 <style>
-	html,
-	body {
-		margin: 0;
-		width: 100%;
-		height: 100%;
-	}
+  html,
+  body {
+    margin: 0;
+    width: 100%;
+    height: calc(100% - 3.125rem);
+  }
+  aside {
+    width: 12.5rem;
+    background: #f4f4f4;
+    padding: 1rem;
+    box-sizing: border-box;
+    height: calc(100% - 3.125rem);
+  }
 
-	main {
-		display: flex;
-		min-height: 100vh;
-	}
-	aside {
-		width: 200px;
-		background: #f4f4f4;
-		padding: 1rem;
-		box-sizing: border-box;
-		overflow-y: auto;
-	}
-
-	aside nav {
-		display: flex;
-		flex-direction: column;
-		gap: 0.5rem;
-	}
-
-	header {
-		position: fixed;
-		top: 0;
-		left: 0;
-		width: 100%;
-		height: 50px;
-		background: #333;
-		color: white;
-		display: flex;
-		align-items: center;
-		padding: 0 1rem;
-		box-sizing: border-box;
-		z-index: 1000;
-	}
+  aside nav {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    height: 100%;
+    overflow-y: auto;
+  }
 </style>

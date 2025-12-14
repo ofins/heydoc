@@ -19,11 +19,13 @@
     "astro.config.mjs"
   ],
   "dependencies": {
+    "@tailwindcss/vite": "^4.1.18",
     "astro": "^5.16.5",
     "astro-pagefind": "^1.8.5",
     "globby": "^16.0.0",
     "gray-matter": "^4.0.3",
-    "marked": "^17.0.1"
+    "marked": "^17.0.1",
+    "tailwindcss": "^4.1.18"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.2",
@@ -31,6 +33,7 @@
     "globals": "^16.5.0",
     "jiti": "^2.6.1",
     "prettier": "3.7.4",
+    "prettier-plugin-organize-imports": "^4.0.0",
     "typescript-eslint": "^8.49.0"
   },
   "engines": {

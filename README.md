@@ -67,7 +67,7 @@ Add metadata to your Markdown files for better organization:
 title: Getting Started
 description: Learn how to get started with our API
 category: Guide
-tags: ["tutorial", "beginner"]
+tags: ['tutorial', 'beginner']
 ---
 
 # Getting Started
@@ -125,7 +125,7 @@ Enhance your documentation with front matter:
 title: Page Title
 description: Brief description for SEO
 category: API Reference
-tags: ["api", "reference", "v1"]
+tags: ['api', 'reference', 'v1']
 ---
 ```
 
