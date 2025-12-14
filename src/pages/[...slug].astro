@@ -35,31 +35,9 @@ export async function getStaticPaths() {
     absolute: true,
   });
 
-  const allDocs = paths.map((filePath) => {
-    const fileContent = fs.readFileSync(filePath, 'utf-8');
-    const { data } = matter(fileContent);
-
-    let relativePath = path.relative(userRoot, filePath);
-    let slug: string | undefined = relativePath
-      .split(path.sep)
-      .join('/')
-      .replace(/\.md$/, '')
-      .replace(/\/index$/, '');
-
-    if (slug === 'index') slug = undefined;
-
-    return {
-      title: data.title || slug || 'Untitled',
-      href: `/docs${slug ? `/${slug}` : ''}`,
-    };
-  });
-
-  console.log(`Discovered ${paths.length} documentation files.`);
-
-  function getGitMetadata(filePath: string, userRoot: string){
+   function getGitMetadata(filePath: string, userRoot: string){
   try {
     const relativePath = path.relative(userRoot, filePath);
-    console.log(`Getting git info for ${relativePath} in ${userRoot}`);
     // Run: git log -5 --pretty="format:%ci|%cn|%h|%s" path/to/file
     // %ci = Committer date (ISO 8601)
     // %cn = Committer name
@@ -107,6 +85,32 @@ export async function getStaticPaths() {
   }
 }
 
+  const allDocs = paths.map((filePath) => {
+    const fileContent = fs.readFileSync(filePath, 'utf-8');
+    const { data } = matter(fileContent);
+
+    let relativePath = path.relative(userRoot, filePath);
+    let slug: string | undefined = relativePath
+      .split(path.sep)
+      .join('/')
+      .replace(/\.md$/, '')
+      .replace(/\/index$/, '');
+
+    if (slug === 'index') slug = undefined;
+
+    const gitInfo = getGitMetadata(filePath, userRoot);
+
+    return {
+      title: data.title || slug || 'Untitled',
+      href: `/docs${slug ? `/${slug}` : ''}`,
+      commits: gitInfo
+    };
+  });
+
+  console.log(`Discovered ${paths.length} documentation files.`);
+
+ 
+
   const slugify = (text: string) => {
     return text
       .toString()
@@ -151,9 +155,7 @@ export async function getStaticPaths() {
         const htmlContent = await marked.parse(content, markedOptions);
 
         const gitInfo = getGitMetadata(filePath, userRoot);
-
-        console.log(`Git info for ${relativePath}:`, gitInfo);
-
+        
         return {
           params: { slug },
           props: {
@@ -211,7 +213,7 @@ const isIndex = Astro.params.slug === undefined;
 <Layout sidebarLinks={allDocs} tableOfContents={tableOfContents} title={frontmatter.title || 'Documentation'}>
   <div class="p-4 overflow-y-scroll flex justify-center items-start flex-col w-full">
     <!-- Markdown content with proper styling -->
-     <details class="mb-4">
+     {!isIndex &&<details class="mb-4">
        <summary class="text-sm text-gray-600 cursor-pointer list-none">
          {commits && commits.length > 0 ? (
            <>Last Updated: {new Date(commits[0].lastModifiedDate).toLocaleDateString('en-US', { dateStyle: 'medium' })} by {commits[0].author} ({commits[0].hash.slice(0,7)}) - {commits[0].message}</>
@@ -228,14 +230,18 @@ const isIndex = Astro.params.slug === undefined;
            ))}
          </div>
        )}
-     </details>
+     </details>}
     <article class="markdown-content" set:html={htmlContent} />
 
-   {isIndex ? <h1 class="text-xl">Available Documentation</h1>
+   {isIndex ? <h1 class="text-xl">Recently Updated Docs</h1>
     <div class="p-4 bg-[#f9f9f9]">
       <ul>
         {
-          allDocs.map((doc) => (
+          [...allDocs].sort((a, b) => {
+            const dateA = a.commits[0]?.lastModifiedDate || new Date(0);
+            const dateB = b.commits[0]?.lastModifiedDate || new Date(0);
+            return dateB.getTime() - dateA.getTime(); // Descending: most recent first
+          }).slice(0,10).map((doc) => (
             <li>
               <a href={doc.href}>{doc.title}</a>
             </li>

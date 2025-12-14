@@ -49,14 +49,16 @@ const { title, sidebarLinks, tableOfContents, lastUpdated, author, commitHash } 
         <nav class="space-y-2">
           {
             sidebarLinks &&
-              sidebarLinks.map((link) => (
-                <a
-                  href={link.href}
-                  class="block py-2 px-3 rounded hover:bg-slate-600 transition-colors text-sm"
-                >
-                  {link.title}
-                </a>
-              ))
+              [...sidebarLinks]
+                .sort((a, b) => a.title.localeCompare(b.title))
+                .map((link) => (
+                  <a
+                    href={link.href}
+                    class="block py-2 px-3 rounded hover:bg-slate-600 transition-colors text-sm"
+                  >
+                    {link.title}
+                  </a>
+                ))
           }
         </nav>
       </aside>
