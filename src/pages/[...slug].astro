@@ -102,7 +102,7 @@ export async function getStaticPaths() {
 
     return {
       title: data.title || slug || 'Untitled',
-      href: `/docs${slug ? `/${slug}` : ''}`,
+      href: `/${slug ? `${slug}` : ''}`,
       commits: gitInfo
     };
   });
@@ -276,7 +276,7 @@ const isIndex = Astro.params.slug === undefined;
       </ul>
     </div>:
     <div class="w-full flex justify-center items-center text-xl p-10 bg-white dark:bg-gray-900">
-      <a href="/docs">Back to Documentation Home</a>
+      <a href="/">Back to Documentation Home</a>
     </div>
     }
   </div>

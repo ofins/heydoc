@@ -13,7 +13,7 @@ const userRoot = process.cwd(); // user running command
 
 const command = process.argv[2] || 'dev';
 
-const allowedCommands = ['dev', 'build', 'preview'];
+const allowedCommands = ['dev', 'build', 'build:watch', 'build:help', 'preview'];
 
 if (!allowedCommands.includes(command)) {
   console.error(`❌ Unknown command: ${command}`);

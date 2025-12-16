@@ -1,10 +1,11 @@
 {
   "name": "heydoc",
   "type": "module",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "scripts": {
     "dev": "astro dev",
     "build": "astro build",
+    "build:watch": "astro build --watch",
     "preview": "astro preview",
     "astro": "astro",
     "lint": "eslint . --ext .js,.mjs,.ts,.tsx,.astro",

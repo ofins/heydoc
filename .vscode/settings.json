@@ -1,5 +1,5 @@
 {
-  "cSpell.words": ["frontmatter", "heydoc"],
+  "cSpell.words": ["frontmatter", "heydoc", "pagefind"],
   "editor.formatOnSave": true,
   "[typescript]": {
     "editor.defaultFormatter": "esbenp.prettier-vscode"

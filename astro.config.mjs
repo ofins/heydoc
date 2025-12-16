@@ -1,10 +1,10 @@
 // @ts-check
-import pagefind from 'astro-pagefind';
 import { defineConfig } from 'astro/config';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
 import tailwindcss from '@tailwindcss/vite';
+import pagefind from 'astro-pagefind';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -13,7 +13,6 @@ const isDev = process.env.NODE_ENV === 'development';
 
 // https://astro.build/config
 export default defineConfig({
-  base: '/docs',
   outDir: path.resolve(userRoot, 'dist-docs/docs/'),
   vite: {
     server: {

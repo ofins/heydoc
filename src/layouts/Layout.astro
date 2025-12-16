@@ -36,13 +36,33 @@ const { title, sidebarLinks, tableOfContents, lastUpdated, author, commitHash } 
   <body>
     <main class="flex mt-12.5">
       <header
-        class="fixed top-0 left-0 w-full h-12.5 bg-slate-800 flex items-center px-4 z-50 text-white shadow-lg border-b border-slate-600"
+        class="fixed top-0 left-0 w-full h-12.5 bg-slate-800 flex justify-center items-center px-4 z-50 text-white shadow-lg border-b border-slate-600"
       >
-        <a href="/docs" class="text-lg font-semibold hover:text-slate-300 transition-colors"
+        <a href="/" class="text-lg font-semibold hover:text-slate-300 transition-colors"
           >HeyDoc! 👨🏻‍⚕️</a
         >
-        <!-- <Search id="Search" /> -->
-        <span class="text-xs ml-auto text-slate-300">Ver {version}</span>
+        <div class="relative ml-8 w-120 flex h-[80%] items-center gap-3">
+          <input
+            id="doc-search"
+            type="text"
+            placeholder="Search docs..."
+            class="w-full px-3 py-1 rounded border border-gray-300 focus:outline-none focus:ring focus:bg-slate-700"
+            autocomplete="off"
+          />
+          <div class="h-0 absolute left-0 w-full bottom-0">
+            <ul
+              id="doc-search-results"
+              class="absolute top-0 left-0 right-0 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded shadow z-50 mt-1 hidden"
+            >
+            </ul>
+          </div>
+          <div class="text-xs text-slate-500 text-nowrap">
+            <span> ↑ ↓ to navigate </span>
+            <span class="mx-3"> | </span>
+            <span> ⏎ to select </span>
+          </div>
+        </div>
+        <span class="text-xs ml-auto text-slate-500">Ver {version}</span>
       </header>
       <aside
         class="fixed top-12.5 left-0 w-50 bg-slate-700 text-white p-4 overflow-y-auto h-[calc(100vh-3.125rem)]"
@@ -90,6 +110,95 @@ const { title, sidebarLinks, tableOfContents, lastUpdated, author, commitHash } 
         </nav>
       </aside>
     </main>
+
+    <script type="module">
+      const pagefind = await import('/pagefind/pagefind.js');
+      let resultsList = null;
+      let input = null;
+      let focusedResultIndex = -1;
+
+      async function searchDocs(query) {
+        const results = await pagefind.search(query);
+        return results.results.slice(0, 7); // Limit to top 10 results
+      }
+
+      function renderResults(results) {
+        if (!resultsList) return;
+        resultsList.innerHTML = '';
+        if (!results.length) {
+          resultsList.classList.add('hidden');
+          return;
+        }
+
+        results.forEach(async (doc) => {
+          const data = await doc.data();
+          console.log('Doc data:', data);
+          const li = document.createElement('li');
+          li.setAttribute('tabindex', '-1');
+          li.className =
+            'px-3 py-2 hover:bg-gray-200 cursor-pointer outline-none focus:bg-gray-200 focus:text-gray-900';
+          li.innerHTML = `<a href="${data.url}" class="block text-sm font-medium">${data.meta.title}</a>
+      <div class="text-xs text-gray-500">${data.excerpt}</div>`;
+          li.onclick = () => {
+            window.location.href = data.url;
+          };
+          resultsList.appendChild(li);
+          resultsList.classList.remove('hidden');
+        });
+      }
+
+      function setupSearch() {
+        input = document.getElementById('doc-search');
+        resultsList = document.getElementById('doc-search-results');
+
+        input.addEventListener('input', async (e) => {
+          const results = await searchDocs(e.target.value);
+          renderResults(results);
+        });
+      }
+
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', setupSearch);
+      } else {
+        setupSearch();
+      }
+
+      document.addEventListener('click', (e) => {
+        if (resultsList && !resultsList.contains(e.target) && e.target !== input) {
+          resultsList.classList.add('hidden');
+        }
+      });
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+          if (resultsList && !resultsList.classList.contains('hidden')) {
+            resultsList.classList.add('hidden');
+            input.value = '';
+          } else {
+            input.blur();
+          }
+        }
+        if (e.key === '/' && document.activeElement !== input) {
+          e.preventDefault();
+          input.focus();
+        }
+
+        const results = resultsList ? resultsList.querySelectorAll('li') : [];
+        if (e.key === 'ArrowDown' && results.length > 0) {
+          e.preventDefault();
+          focusedResultIndex = (focusedResultIndex + 1) % results.length;
+          results[focusedResultIndex].focus();
+        }
+        if (e.key === 'ArrowUp') {
+          e.preventDefault();
+          focusedResultIndex = (focusedResultIndex - 1) % results.length;
+          results[focusedResultIndex].focus();
+        }
+        if (e.key === 'Enter' && focusedResultIndex >= 0 && results.length > 0) {
+          e.preventDefault();
+          results[focusedResultIndex].click();
+        }
+      });
+    </script>
   </body>
 </html>
 
